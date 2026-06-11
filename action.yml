@@ -1,0 +1,23 @@
+name: Lunar CI Tracer
+description: >-
+  Installs and run the Lunar CI Tracer to instrument GitHub Actions workflows, alongside the Lunar CLI.
+inputs:
+  version:
+    description: Lunar CLI and tracer version to use (e.g. "v2.2.0").
+    required: false
+    default: v2.2.0
+outputs:
+  agent-installed:
+    description: >-
+      "true" when the agent started and became ready, "false" when the agent
+      could not be installed and the step continued because LUNAR_STRICT_MODE
+      was not enabled.
+branding:
+  icon: shield
+  color: blue
+
+runs:
+  using: node20
+  main: index.js
+  post: index.js
+  post-if: always()

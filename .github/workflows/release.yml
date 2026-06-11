@@ -1,0 +1,48 @@
+name: Release
+run-name: "Release ${{ inputs.version }}"
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Release version (e.g. "vX.Y.Z")'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. "vX.Y.Z")'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Generate release files from templates
+        env:
+          LUNAR_VERSION: ${{ inputs.version }}
+        run: |
+          envsubst '${LUNAR_VERSION}' < .github/templates/action-template.yml > action.yml
+          envsubst '${LUNAR_VERSION}' < .github/templates/README-template.md > README.md
+
+      - name: Commit and tag release
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add action.yml README.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Release ${VERSION}"
+          fi
+          git tag "${VERSION}"
+          git push origin main "${VERSION}"
