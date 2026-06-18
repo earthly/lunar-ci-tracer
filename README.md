@@ -80,14 +80,6 @@ The action runs as a job step. It downloads the `lunar` CLI and shells out to `l
 
 The agent exits automatically when the job completes.
 
-## Migrating from lunar-ci-action
-
-This action replaces [`earthly/lunar-ci-action`](https://github.com/earthly/lunar-ci-action). To migrate, point your workflow at `earthly/lunar-ci-tracer@v2.2.0` — the env vars are the same. What changed:
-
-- The `lunar-ci-agent-version` input was renamed to `lunar-ci-tracer-version`; rename it in your workflow if you set it.
-- The agent binary is now fetched through your Lunar Hub (`lunar ci-tracer run`) instead of the public `lunar-ci-agent-dist` GitHub releases. Your Hub must support tracer distribution and be reachable when the action starts.
-- Agent installation failures no longer fail the step by default; set `LUNAR_STRICT_MODE=true` to restore the old hard-fail behaviour.
-
 ## Requirements
 
 - **Linux x86_64** runners (GitHub-hosted or self-hosted).
