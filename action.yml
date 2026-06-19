@@ -3,9 +3,9 @@ description: >-
   Installs and run the Lunar CI Tracer to instrument GitHub Actions workflows, alongside the Lunar CLI.
 inputs:
   version:
-    description: Lunar CLI and tracer version to use (e.g. "v2.3.0").
+    description: Lunar CLI and tracer version to use (e.g. "v2.3.1").
     required: false
-    default: v2.3.0
+    default: v2.3.1
 outputs:
   agent-installed:
     description: >-

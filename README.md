@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Run Lunar CI Tracer
         id: lunar
-        uses: earthly/lunar-ci-tracer@v2.3.0
+        uses: earthly/lunar-ci-tracer@v2.3.1
         env:
           LUNAR_HUB_TOKEN: ${{ secrets.LUNAR_HUB_TOKEN }}
           LUNAR_HUB_HOST: your_hub_host
@@ -29,7 +29,7 @@ The action installs the Lunar CLI (by default, the latest version available at t
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `v2.3.0` | Lunar CLI version to run. Defaults to the agent version this action release was cut for. |
+| `version` | `v2.3.1` | Lunar CLI version to run. Defaults to the agent version this action release was cut for. |
 
 ## Outputs
 
