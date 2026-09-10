@@ -30,6 +30,21 @@ The action installs the Lunar CLI (by default, the latest version available at t
 | Input | Default | Description |
 |---|---|---|
 | `version` | `v3.20.0` | Lunar CLI version to run. Defaults to the agent version this action release was cut for. |
+| `github-token` | `${{ github.token }}` | Token the agent uses for the GitHub API reads it makes about its own repository. Passed to the agent as `LUNAR_GITHUB_TOKEN`. See [Repository permissions](#repository-permissions). |
+
+### Repository permissions
+
+The agent reads two things from the GitHub API about the repository it is running in: the workflow and action definitions it needs for **step attribution**, and the **changed-file list** behind `LUNAR_COMPONENT_INFER`. It now uses the job's own `GITHUB_TOKEN` for both, so it reaches no further than the job already can.
+
+Workflows that set a restrictive `permissions:` block must grant:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: read
+```
+
+Without them — or with `github-token: ""` to pass no token at all — the agent logs that step attribution and component inference are degraded and continues; tracing and collection are unaffected. An explicit `LUNAR_GITHUB_TOKEN` in the step's `env:` takes precedence over this input.
 
 ## Outputs
 

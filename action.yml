@@ -6,6 +6,18 @@ inputs:
     description: Lunar CLI and tracer version to use (e.g. "v3.20.0").
     required: false
     default: v3.20.0
+  github-token:
+    description: >-
+      Token the agent uses for the GitHub API reads it makes about its own
+      repository: step attribution, and the changed-file list behind
+      LUNAR_COMPONENT_INFER. Defaults to the job's own GITHUB_TOKEN, so it
+      reaches no further than the job already can. Workflows that set a
+      restrictive `permissions:` block need `contents: read` and
+      `pull-requests: read` for these to work. Set to an empty string to pass
+      no token; the agent then logs that step attribution and component
+      inference are degraded and continues.
+    required: false
+    default: ${{ github.token }}
 outputs:
   agent-installed:
     description: >-
