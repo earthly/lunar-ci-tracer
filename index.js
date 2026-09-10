@@ -153,6 +153,12 @@ function resolveLunarVersion() {
   return "latest";
 }
 
+// githubToken returns the github-token input, defaulted by action.yml to the
+// job's own GITHUB_TOKEN. An empty value is honoured as "pass no token".
+function githubToken() {
+  return (process.env["INPUT_GITHUB-TOKEN"] || "").trim();
+}
+
 function lunarDownloadUrl(version) {
   if (version === "latest") {
     return `https://github.com/${LUNAR_DIST_REPO}/releases/latest/download/${LUNAR_ASSET_NAME}`;
@@ -268,6 +274,15 @@ async function runMain() {
   childEnv.LUNAR_LOG_LEVEL = childEnv.LUNAR_LOG_LEVEL || "error";
   childEnv.LUNAR_HUB_GRPC_PORT = childEnv.LUNAR_HUB_GRPC_PORT || "443";
   childEnv.LUNAR_HUB_HTTP_PORT = childEnv.LUNAR_HUB_HTTP_PORT || "443";
+  // The agent reads its own repository's workflow files (step attribution) and
+  // changed-file list (LUNAR_COMPONENT_INFER) from the GitHub API. It used to
+  // get an org-wide installation token from the Hub for that; the job's own
+  // GITHUB_TOKEN covers both and reaches no further than the job already can.
+  // An explicit LUNAR_GITHUB_TOKEN in the workflow env still wins, and an
+  // empty github-token input leaves the variable unset rather than blank.
+  if (!childEnv.LUNAR_GITHUB_TOKEN && githubToken() !== "") {
+    childEnv.LUNAR_GITHUB_TOKEN = githubToken();
+  }
 
   // The detached child downloads the agent through the Hub when the cache is
   // cold, then execs it in place (same PID), so polling this PID covers both
