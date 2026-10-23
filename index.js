@@ -14,7 +14,7 @@ const LUNAR_BIN_NAME = "lunar";
 const LUNAR_ASSET_NAME = "lunar-linux-amd64";
 const LUNAR_DIST_REPO = "earthly/lunar-dist";
 const READY_POLL_MS = 50;
-// Generous enough for a cold-cache agent download through the Hub plus agent
+// Generous enough for a cold-cache tracer download through the Hub plus tracer
 // boot; outright failures are caught much sooner by the liveness check.
 const READY_TIMEOUT_MS = 5 * 60 * 1000;
 // GitHub truncates annotations around 4KB; keep the log excerpt below that.
@@ -86,7 +86,7 @@ function isProcessAlive(pid) {
   }
 }
 
-// waitForReady polls for the agent's ready-file while streaming the child's
+// waitForReady polls for the tracer's ready-file while streaming the child's
 // output to the step log. Resolves to "ready", "exited" (child died before
 // becoming ready), or "timeout".
 async function waitForReady(readyFile, pid, logsFile, timeoutMs) {
@@ -188,8 +188,8 @@ function readLogTail(logsFile) {
   }
 }
 
-// handleSetupFailure applies the LUNAR_STRICT_MODE gate to agent installation
-// failures (CLI download, agent download through the Hub, agent boot): strict
+// handleSetupFailure applies the LUNAR_STRICT_MODE gate to tracer installation
+// failures (CLI download, tracer download through the Hub, tracer boot): strict
 // fails the step; non-strict surfaces an error annotation but lets the rest
 // of the job continue uninstrumented.
 function handleSetupFailure(message) {
@@ -202,7 +202,7 @@ function handleSetupFailure(message) {
 
   error(message);
   warn(
-    "agent download failed; continuing because LUNAR_STRICT_MODE is not set",
+    "tracer download failed; continuing because LUNAR_STRICT_MODE is not set",
   );
 }
 
@@ -257,7 +257,7 @@ async function runMain() {
     "github",
   ];
 
-  info(`Starting Lunar CI Agent: lunar ${args.join(" ")}`);
+  info(`Starting Lunar CI/CD Tracer: lunar ${args.join(" ")}`);
   relaxPtraceScope();
 
   const outFd = fs.openSync(logsFile, "a");
@@ -269,9 +269,9 @@ async function runMain() {
   childEnv.LUNAR_HUB_GRPC_PORT = childEnv.LUNAR_HUB_GRPC_PORT || "443";
   childEnv.LUNAR_HUB_HTTP_PORT = childEnv.LUNAR_HUB_HTTP_PORT || "443";
 
-  // The detached child downloads the agent through the Hub when the cache is
+  // The detached child downloads the tracer through the Hub when the cache is
   // cold, then execs it in place (same PID), so polling this PID covers both
-  // the download and the agent boot.
+  // the download and the tracer boot.
   const child = spawn(lunarPath, args, {
     detached: true,
     stdio: ["ignore", outFd, outFd],
@@ -285,7 +285,7 @@ async function runMain() {
   if (result !== "ready") {
     if (result === "timeout") {
       // SIGKILL cannot be intercepted and forwarded to the tracee, so a
-      // half-attached agent is detached by the kernel and the runner
+      // half-attached tracer is detached by the kernel and the runner
       // process resumes untraced.
       try {
         process.kill(child.pid, "SIGKILL");
@@ -293,8 +293,8 @@ async function runMain() {
     }
     let message =
       result === "timeout"
-        ? `Lunar CI Agent did not become ready within ${READY_TIMEOUT_MS / 1000}s.`
-        : "lunar ci-tracer run exited before the agent became ready.";
+        ? `Lunar CI/CD Tracer did not become ready within ${READY_TIMEOUT_MS / 1000}s.`
+        : "lunar ci-tracer run exited before the tracer became ready.";
     const tail = readLogTail(logsFile);
     if (tail !== "") {
       message += `\n${tail}`;
@@ -304,17 +304,17 @@ async function runMain() {
   }
 
   setOutput("agent-installed", "true");
-  info("Lunar CI Agent is ready.");
+  info("Lunar CI/CD Tracer is ready.");
 }
 
 async function runPost() {
   const logsFile = process.env[`STATE_${STATE_LOGS_FILE}`];
   if (!logsFile) {
-    info("No logs file state found; skipping Lunar CI Agent log output.");
+    info("No logs file state found; skipping Lunar CI/CD Tracer log output.");
     return;
   }
 
-  info("Lunar CI Agent logs:");
+  info("Lunar CI/CD Tracer logs:");
   try {
     const logs = await fsp.readFile(logsFile, "utf8");
     process.stdout.write(logs.endsWith("\n") ? logs : `${logs}\n`);

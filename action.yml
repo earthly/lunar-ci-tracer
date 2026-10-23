@@ -9,7 +9,7 @@ inputs:
 outputs:
   agent-installed:
     description: >-
-      "true" when the agent started and became ready, "false" when the agent
+      "true" when the tracer started and became ready, "false" when the tracer
       could not be installed and the step continued because LUNAR_STRICT_MODE
       was not enabled.
 branding:
