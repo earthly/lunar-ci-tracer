@@ -1,0 +1,15 @@
+.lunar-tracer:
+  variables:
+    LUNAR_CLI_VERSION: "v5.0.0"
+  id_tokens:
+    LUNAR_HUB_TOKEN:
+      aud: "$LUNAR_HUB_HOST"
+  before_script:
+    - mkdir -p "$CI_PROJECT_DIR/.lunar/bin"
+    - >-
+      curl --fail --silent --show-error --location --retry 3
+      "https://github.com/earthly/lunar-dist/releases/download/${LUNAR_CLI_VERSION}/lunar-linux-amd64"
+      --output "$CI_PROJECT_DIR/.lunar/bin/lunar"
+    - chmod +x "$CI_PROJECT_DIR/.lunar/bin/lunar"
+    - export PATH="$CI_PROJECT_DIR/.lunar/bin:$PATH"
+    - lunar ci-tracer run --ci-type gitlab

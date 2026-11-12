@@ -30,6 +30,7 @@ jobs:
           LUNAR_VERSION: ${{ inputs.version }}
         run: |
           envsubst '${LUNAR_VERSION}' < .github/templates/action-template.yml > action.yml
+          envsubst '${LUNAR_VERSION}' < .github/templates/gitlab-template.yml > gitlab.yml
           envsubst '${LUNAR_VERSION}' < .github/templates/README-template.md > README.md
 
       - name: Commit and tag release
@@ -38,7 +39,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add action.yml README.md
+          git add action.yml gitlab.yml README.md
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
