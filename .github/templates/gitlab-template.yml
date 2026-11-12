@@ -12,11 +12,18 @@ spec:
     LUNAR_HUB_TOKEN:
       aud: "$[[ inputs.hub-host ]]"
   before_script:
-    - mkdir -p "$CI_PROJECT_DIR/.lunar/bin"
-    - >-
-      curl --fail --silent --show-error --location --retry 3
-      "https://github.com/earthly/lunar-dist/releases/download/${LUNAR_CLI_VERSION}/lunar-linux-amd64"
-      --output "$CI_PROJECT_DIR/.lunar/bin/lunar"
-    - chmod +x "$CI_PROJECT_DIR/.lunar/bin/lunar"
-    - export PATH="$CI_PROJECT_DIR/.lunar/bin:$PATH"
-    - lunar ci-tracer run --ci-type gitlab
+    - |
+      if LUNAR_BIN_DIR="$(mktemp -d /tmp/lunar-ci-tracer.XXXXXX)" &&
+        curl --fail --silent --show-error --location --retry 3 \
+          "https://github.com/earthly/lunar-dist/releases/download/${LUNAR_CLI_VERSION}/lunar-linux-amd64" \
+          --output "$LUNAR_BIN_DIR/lunar" &&
+        chmod +x "$LUNAR_BIN_DIR/lunar" &&
+        export PATH="$LUNAR_BIN_DIR:$PATH" &&
+        lunar ci-tracer run --ci-type gitlab; then
+        :
+      elif [ "${LUNAR_STRICT_MODE:-false}" = "true" ]; then
+        echo "Lunar CI tracer setup failed; LUNAR_STRICT_MODE=true." >&2
+        exit 1
+      else
+        echo "WARNING: Lunar CI tracer setup failed; continuing without instrumentation." >&2
+      fi

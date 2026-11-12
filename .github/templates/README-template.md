@@ -1,6 +1,6 @@
 # Lunar CI Tracer
 
-A GitHub Action and GitLab CI template that install the [Lunar](https://github.com/earthly/lunar) CLI and use it to run the CI tracer.
+A GitHub Action that installs the [Lunar](https://github.com/earthly/lunar) CLI and uses it to run the CI tracer.
 The tracer instruments your workflow, triggering collectors and policies at the appropriate points during execution.
 
 ## Usage
@@ -87,42 +87,15 @@ The tracer exits automatically when the job completes.
 
 ## GitLab CI
 
-Include `gitlab.yml` with the required `hub-host` input and extend `.lunar-tracer` in each job to trace. Use a release tag containing GitLab CI support; the template pins its matching CLI version.
+The GitLab template is published separately in [earthly-technologies/lunar-ci-tracer on GitLab](https://gitlab.com/earthly-technologies/lunar-ci-tracer). See that repository for setup, OIDC configuration, and examples. Use a release containing GitLab support.
 
-```yaml
-include:
-  - remote: 'https://raw.githubusercontent.com/earthly/lunar-ci-tracer/<release-tag>/gitlab.yml'
-    inputs:
-      hub-host: hub.example.com
+## Releasing
 
-build:
-  extends: .lunar-tracer
-  script:
-    - make build
+`release.yml` renders the GitHub action and the GitLab template with the same CLI version, publishes `gitlab.yml` and its README to the GitLab repository, and tags both repositories with that version. Edit the sources under `.github/templates/`; generated GitLab files are hosted only on GitLab.
 
-test:
-  extends: .lunar-tracer
-  script:
-    - make test
-```
+Configure the GitHub repository secret `GITLAB_SYNC_TOKEN` with a GitLab project access token scoped to `write_repository` for `earthly-technologies/lunar-ci-tracer`, with permission to push its `main` branch and release tags. Callers using `workflow_call` must pass this secret explicitly or inherit it. The normal Lunar release uses `workflow_dispatch` and reads this repository's secret.
 
-The hidden `.lunar-tracer` template downloads the CLI into `$CI_PROJECT_DIR/.lunar/bin`, adds it to `PATH`, and runs `lunar ci-tracer run --ci-type gitlab` directly in `before_script`. The CLI downloads and verifies the tracer through the Hub, attaches it to the job shell, and returns once ready. Subsequent `before_script` and `script` commands are traced; GitLab's separate `after_script` shell is outside that process tree. Download or startup failures fail the job.
-
-The `hub-host` input sets `LUNAR_HUB_HOST` for every job extending the template. GitLab issues an OIDC ID token directly into `LUNAR_HUB_TOKEN`, using the input as its audience. This must match the Hub's `HUB_AUTH_AUDIENCE`; override `id_tokens.LUNAR_HUB_TOKEN.aud` in your job if the audience differs from the hostname. Remove or appropriately scope any existing project/group `LUNAR_HUB_TOKEN` variable, because it overrides the issued ID token. You can override `LUNAR_CLI_VERSION` to select another compatible CLI release.
-
-Keep your existing job images and runner selection. Your job image must provide a shell, `curl`, and CA certificates on Linux x86_64, and allow ptrace attachment. GitLab-managed `saas-linux-*` runners support this; self-managed containers need ptrace permissions. The Hub must be reachable from the job.
-
-If a job has its own `before_script`, explicitly include the tracer setup before your commands, because GitLab replaces inherited arrays:
-
-```yaml
-build:
-  extends: .lunar-tracer
-  before_script:
-    - !reference [.lunar-tracer, before_script]
-    - ./my-setup.sh
-  script:
-    - make build
-```
+Re-running a partially published release accepts an existing tag only when its file tree matches the generated release; published tags are never moved. If sources have changed since a partial release, restore the release sources or publish a new version.
 
 ## License
 

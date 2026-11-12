@@ -8,11 +8,19 @@ on:
         description: 'Release version (e.g. "vX.Y.Z")'
         required: true
         type: string
+    secrets:
+      GITLAB_SYNC_TOKEN:
+        description: GitLab project token with write_repository access to lunar-ci-tracer.
+        required: true
   workflow_dispatch:
     inputs:
       version:
         description: 'Release version (e.g. "vX.Y.Z")'
         required: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -24,26 +32,67 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0
+
+      - name: Prepare GitLab repository
+        env:
+          GITLAB_SYNC_TOKEN: ${{ secrets.GITLAB_SYNC_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "Invalid release version" >&2; exit 1; }
+          git check-ref-format "refs/tags/$VERSION"
+          test -n "$GITLAB_SYNC_TOKEN" || { echo "GITLAB_SYNC_TOKEN is required" >&2; exit 1; }
+          cat > "$RUNNER_TEMP/gitlab-askpass" <<'ASKPASS'
+          #!/bin/sh
+          case "$1" in
+            *Username*gitlab.com*) echo oauth2 ;;
+            *Password*gitlab.com*) printf '%s\n' "$GITLAB_SYNC_TOKEN" ;;
+          esac
+          ASKPASS
+          chmod 700 "$RUNNER_TEMP/gitlab-askpass"
+          GIT_ASKPASS="$RUNNER_TEMP/gitlab-askpass" GIT_TERMINAL_PROMPT=0 \
+            git -c credential.helper= clone --branch main \
+              https://gitlab.com/earthly-technologies/lunar-ci-tracer.git "$RUNNER_TEMP/gitlab-release"
 
       - name: Generate release files from templates
         env:
           LUNAR_VERSION: ${{ inputs.version }}
         run: |
           envsubst '${LUNAR_VERSION}' < .github/templates/action-template.yml > action.yml
-          envsubst '${LUNAR_VERSION}' < .github/templates/gitlab-template.yml > gitlab.yml
           envsubst '${LUNAR_VERSION}' < .github/templates/README-template.md > README.md
+          envsubst '${LUNAR_VERSION}' < .github/templates/gitlab-template.yml > "$RUNNER_TEMP/gitlab-release/gitlab.yml"
+          envsubst '${LUNAR_VERSION}' < .github/templates/gitlab-README-template.md > "$RUNNER_TEMP/gitlab-release/README.md"
 
-      - name: Commit and tag release
+      - name: Commit and tag both releases
         env:
           VERSION: ${{ inputs.version }}
+          GITLAB_SYNC_TOKEN: ${{ secrets.GITLAB_SYNC_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add action.yml gitlab.yml README.md
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Release ${VERSION}"
-          fi
-          git tag "${VERSION}"
-          git push origin main "${VERSION}"
+          export GIT_ASKPASS="$RUNNER_TEMP/gitlab-askpass" GIT_TERMINAL_PROMPT=0
+          git add action.yml README.md
+          git -C "$RUNNER_TEMP/gitlab-release" add gitlab.yml README.md
+          for repo in "$RUNNER_TEMP/gitlab-release" .; do
+            if git -C "$repo" show-ref --verify --quiet "refs/tags/$VERSION"; then
+              if [ "$(git -C "$repo" rev-parse "refs/tags/$VERSION^{tree}")" != "$(git -C "$repo" write-tree)" ]; then
+                echo "Release tag $VERSION already exists with different files in $repo" >&2
+                exit 1
+              fi
+            fi
+          done
+          for repo in "$RUNNER_TEMP/gitlab-release" .; do
+            if git -C "$repo" show-ref --verify --quiet "refs/tags/$VERSION"; then
+              echo "Release $VERSION already published in $repo"
+              continue
+            fi
+            git -C "$repo" config user.name "github-actions[bot]"
+            git -C "$repo" config user.email "github-actions[bot]@users.noreply.github.com"
+            if ! git -C "$repo" diff --cached --quiet; then
+              git -C "$repo" commit -m "Release $VERSION"
+            fi
+            git -C "$repo" tag "$VERSION"
+            git -C "$repo" -c credential.helper= push --atomic origin HEAD:main "refs/tags/$VERSION"
+          done
+
+      - name: Remove GitLab authentication helper
+        if: always()
+        run: rm -f "$RUNNER_TEMP/gitlab-askpass"
