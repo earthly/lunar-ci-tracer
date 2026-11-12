@@ -87,18 +87,13 @@ The tracer exits automatically when the job completes.
 
 ## GitLab CI
 
-Include `gitlab.yml` and extend `.lunar-tracer` in each job to trace. Use a release tag containing GitLab CI support; the template pins its matching CLI version.
+Include `gitlab.yml` with the required `hub-host` input and extend `.lunar-tracer` in each job to trace. Use a release tag containing GitLab CI support; the template pins its matching CLI version.
 
 ```yaml
 include:
   - remote: 'https://raw.githubusercontent.com/earthly/lunar-ci-tracer/<release-tag>/gitlab.yml'
-
-variables:
-  LUNAR_HUB_HOST: hub.example.com
-
-default:
-  image: buildpack-deps:noble
-  tags: [saas-linux-small-amd64]
+    inputs:
+      hub-host: hub.example.com
 
 build:
   extends: .lunar-tracer
@@ -113,9 +108,9 @@ test:
 
 The hidden `.lunar-tracer` template downloads the CLI into `$CI_PROJECT_DIR/.lunar/bin`, adds it to `PATH`, and runs `lunar ci-tracer run --ci-type gitlab` directly in `before_script`. The CLI downloads and verifies the tracer through the Hub, attaches it to the job shell, and returns once ready. Subsequent `before_script` and `script` commands are traced; GitLab's separate `after_script` shell is outside that process tree. Download or startup failures fail the job.
 
-GitLab issues an OIDC ID token directly into `LUNAR_HUB_TOKEN`, with `LUNAR_HUB_HOST` as the audience. This must match the Hub's `HUB_AUTH_AUDIENCE`; override `id_tokens.LUNAR_HUB_TOKEN.aud` in your job if the audience differs from the hostname. Remove or appropriately scope any existing project/group `LUNAR_HUB_TOKEN` variable, because it overrides the issued ID token. You can override `LUNAR_CLI_VERSION` to select another compatible CLI release.
+The `hub-host` input sets `LUNAR_HUB_HOST` for every job extending the template. GitLab issues an OIDC ID token directly into `LUNAR_HUB_TOKEN`, using the input as its audience. This must match the Hub's `HUB_AUTH_AUDIENCE`; override `id_tokens.LUNAR_HUB_TOKEN.aud` in your job if the audience differs from the hostname. Remove or appropriately scope any existing project/group `LUNAR_HUB_TOKEN` variable, because it overrides the issued ID token. You can override `LUNAR_CLI_VERSION` to select another compatible CLI release.
 
-Your job image must provide a shell, `curl`, and CA certificates on Linux x86_64, and allow ptrace attachment. GitLab-managed `saas-linux-*` runners support this; self-managed containers need ptrace permissions. The Hub must be reachable from the job.
+Keep your existing job images and runner selection. Your job image must provide a shell, `curl`, and CA certificates on Linux x86_64, and allow ptrace attachment. GitLab-managed `saas-linux-*` runners support this; self-managed containers need ptrace permissions. The Hub must be reachable from the job.
 
 If a job has its own `before_script`, explicitly include the tracer setup before your commands, because GitLab replaces inherited arrays:
 

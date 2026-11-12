@@ -1,9 +1,16 @@
+spec:
+  inputs:
+    hub-host:
+      type: string
+      description: Lunar Hub hostname, without a scheme or path.
+---
 .lunar-tracer:
   variables:
+    LUNAR_HUB_HOST: "$[[ inputs.hub-host ]]"
     LUNAR_CLI_VERSION: "v5.0.0"
   id_tokens:
     LUNAR_HUB_TOKEN:
-      aud: "$LUNAR_HUB_HOST"
+      aud: "$[[ inputs.hub-host ]]"
   before_script:
     - mkdir -p "$CI_PROJECT_DIR/.lunar/bin"
     - >-
