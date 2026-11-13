@@ -93,8 +93,6 @@ The GitLab template is published separately in [earthly-technologies/lunar-ci-tr
 
 `release.yml` renders the GitHub action and the GitLab template with the same CLI version, publishes `gitlab.yml` and its README to the GitLab repository, and tags both repositories with that version. Edit the sources under `.github/templates/`; generated GitLab files are hosted only on GitLab.
 
-Configure the GitHub repository secret `GITLAB_SYNC_TOKEN` with a GitLab project access token scoped to `write_repository` for `earthly-technologies/lunar-ci-tracer`, with permission to push its `main` branch and release tags. Callers using `workflow_call` must pass this secret explicitly or inherit it. The normal Lunar release uses `workflow_dispatch` and reads this repository's secret.
-
 Re-running a partially published release accepts an existing tag only when its file tree matches the generated release; published tags are never moved. If sources have changed since a partial release, restore the release sources or publish a new version.
 
 ## License
