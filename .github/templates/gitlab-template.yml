@@ -13,17 +13,34 @@ spec:
       aud: "$[[ inputs.hub-host ]]"
   before_script:
     - |
-      if LUNAR_BIN_DIR="$(mktemp -d /tmp/lunar-ci-tracer.XXXXXX)" &&
-        curl --fail --silent --show-error --location --retry 3 \
-          "https://github.com/earthly/lunar-dist/releases/download/${LUNAR_CLI_VERSION}/lunar-linux-amd64" \
-          --output "$LUNAR_BIN_DIR/lunar" &&
-        chmod +x "$LUNAR_BIN_DIR/lunar" &&
-        export PATH="$LUNAR_BIN_DIR:$PATH" &&
+      lunar_cli_cache_root="${XDG_CACHE_HOME:-${HOME:+$HOME/.cache}}"
+      lunar_cli_dir="$lunar_cli_cache_root/lunar-ci-tracer/${LUNAR_CLI_VERSION:-}"
+      lunar_cli_stage=
+      if case "$lunar_cli_cache_root" in /*) true ;; *) false ;; esac &&
+        case "${LUNAR_CLI_VERSION:-}" in ""|.|..|*[!A-Za-z0-9._-]*) false ;; *) true ;; esac &&
+        mkdir -p "$lunar_cli_dir" &&
+        {
+          [ -x "$lunar_cli_dir/lunar" ] || {
+            lunar_cli_stage="$(mktemp "$lunar_cli_dir/.lunar.XXXXXX")" &&
+            curl --fail --silent --show-error --location --retry 3 \
+              "https://github.com/earthly/lunar-dist/releases/download/${LUNAR_CLI_VERSION}/lunar-linux-amd64" \
+              --output "$lunar_cli_stage" &&
+            chmod +x "$lunar_cli_stage" &&
+            mv -f "$lunar_cli_stage" "$lunar_cli_dir/lunar"
+          }
+        } &&
+        export PATH="$lunar_cli_dir:$PATH" &&
         lunar ci-tracer run --ci-type gitlab; then
         :
-      elif [ "${LUNAR_STRICT_MODE:-false}" = "true" ]; then
-        echo "Lunar CI tracer setup failed; LUNAR_STRICT_MODE=true." >&2
-        exit 1
       else
+        if [ -n "$lunar_cli_stage" ]; then rm -f "$lunar_cli_stage" || true; fi
+        lunar_strict_mode="${LUNAR_STRICT_MODE:-}"
+        lunar_strict_mode="${lunar_strict_mode#"${lunar_strict_mode%%[![:space:]]*}"}"
+        lunar_strict_mode="${lunar_strict_mode%"${lunar_strict_mode##*[![:space:]]}"}"
+        case "$lunar_strict_mode" in
+          1|[Tt]|[Tt][Rr][Uu][Ee])
+            echo "Lunar CI tracer setup failed; strict mode is enabled." >&2
+            exit 1 ;;
+        esac
         echo "WARNING: Lunar CI tracer setup failed; continuing without instrumentation." >&2
       fi

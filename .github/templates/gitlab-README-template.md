@@ -53,7 +53,7 @@ Remove or appropriately scope existing project/group `LUNAR_HUB_TOKEN` variables
 | Variable | Default | Description |
 |---|---|---|
 | `LUNAR_CLI_VERSION` | `${LUNAR_VERSION}` | CLI release to download. Override only with a release containing GitLab CI support. |
-| `LUNAR_STRICT_MODE` | `false` | Set to `true` to fail the job if tracer download, setup, or startup fails. By default, the job warns and continues without instrumentation. |
+| `LUNAR_STRICT_MODE` | `false` | Set to `true`, `t`, or `1` to fail the job if tracer download, setup, or startup fails. Case and surrounding whitespace are ignored. By default, the job warns and continues without instrumentation. |
 
 If your job has its own `before_script`, include the tracer setup explicitly because GitLab replaces inherited arrays:
 
@@ -73,7 +73,7 @@ build:
 - Network access to GitHub releases and your Lunar Hub.
 - Permission to attach with ptrace. GitLab-managed `saas-linux-*` runners support this; self-managed containers must allow ptrace attachment.
 
-Each job downloads the CLI into a unique directory under `/tmp`, adds it to `PATH`, and runs `lunar ci-tracer run --ci-type gitlab` in `before_script`. Installation leaves the checked-out repository unchanged. The CLI downloads and verifies the tracer through the Hub, attaches it to the job shell, and returns once ready.
+The template caches one CLI binary per version under `$XDG_CACHE_HOME/lunar-ci-tracer` (or `$HOME/.cache/lunar-ci-tracer` when `XDG_CACHE_HOME` is unset). This directory must be writable. Downloads use a temporary file and an atomic rename so concurrent jobs can share the cache; failed downloads remove their temporary file. Each job adds the version directory to `PATH` and runs `lunar ci-tracer run --ci-type gitlab` in `before_script`. Installation leaves the checked-out repository unchanged. The CLI downloads and verifies the tracer through the Hub, attaches it to the job shell, and returns once ready.
 
 Subsequent `before_script` and `script` commands are traced. GitLab's separate `after_script` shell is outside that process tree. Commands share one synthetic job step; individual `script` entries are not reported as separate steps. The tracer finalizes the run when the attached shell exits, subject to the runner's container shutdown lifecycle.
 
