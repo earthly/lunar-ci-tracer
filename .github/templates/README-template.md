@@ -1,6 +1,6 @@
 # Lunar CI Tracer
 
-A GitHub Action that installs the [Lunar](https://github.com/earthly/lunar) CLI, and uses it to run the CI tracer. 
+A GitHub Action that installs the [Lunar](https://github.com/earthly/lunar) CLI and uses it to run the CI tracer.
 The tracer instruments your workflow, triggering collectors and policies at the appropriate points during execution.
 
 ## Usage
@@ -84,6 +84,25 @@ The tracer exits automatically when the job completes.
 
 - **Linux x86_64** runners (GitHub-hosted or self-hosted).
 - Network access from the runner to your Lunar Hub.
+
+## GitLab CI
+
+The GitLab `tracer` component is published separately in [earthly-technologies/lunar-ci-tracer on GitLab](https://gitlab.com/earthly-technologies/lunar-ci-tracer). See that repository for setup, OIDC configuration, and examples. Use a release containing GitLab support.
+
+```yaml
+include:
+  - component: gitlab.com/earthly-technologies/lunar-ci-tracer/tracer@<release-tag>
+    inputs:
+      hub-host: hub.example.com
+```
+
+Extend `.lunar-tracer` in each job you want to trace.
+
+## Releasing
+
+`release.yml` renders the GitHub action and the GitLab component with the same CLI version, publishes `templates/tracer.yml` and its README to the GitLab repository, and tags both repositories with that version. Edit the sources under `.github/templates/`; generated GitLab files are hosted only on GitLab.
+
+Re-running a partially published release accepts an existing tag only when its file tree matches the generated release; published tags are never moved. If sources have changed since a partial release, restore the release sources or publish a new version.
 
 ## License
 
