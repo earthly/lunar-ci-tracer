@@ -10,7 +10,7 @@ on:
         type: string
     secrets:
       GITLAB_SYNC_TOKEN:
-        description: GitLab project token with write_repository access to lunar-ci-tracer.
+        description: GitLab token with permission to push to lunar-ci-tracer.
         required: true
   workflow_dispatch:
     inputs:
