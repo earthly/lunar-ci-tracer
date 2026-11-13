@@ -60,7 +60,8 @@ jobs:
         run: |
           envsubst '${LUNAR_VERSION}' < .github/templates/action-template.yml > action.yml
           envsubst '${LUNAR_VERSION}' < .github/templates/README-template.md > README.md
-          envsubst '${LUNAR_VERSION}' < .github/templates/gitlab-template.yml > "$RUNNER_TEMP/gitlab-release/gitlab.yml"
+          mkdir -p "$RUNNER_TEMP/gitlab-release/templates"
+          envsubst '${LUNAR_VERSION}' < .github/templates/gitlab-template.yml > "$RUNNER_TEMP/gitlab-release/templates/tracer.yml"
           envsubst '${LUNAR_VERSION}' < .github/templates/gitlab-README-template.md > "$RUNNER_TEMP/gitlab-release/README.md"
 
       - name: Commit and tag both releases
@@ -70,7 +71,7 @@ jobs:
         run: |
           export GIT_ASKPASS="$RUNNER_TEMP/gitlab-askpass" GIT_TERMINAL_PROMPT=0
           git add action.yml README.md
-          git -C "$RUNNER_TEMP/gitlab-release" add gitlab.yml README.md
+          git -C "$RUNNER_TEMP/gitlab-release" add templates/tracer.yml README.md
           for repo in "$RUNNER_TEMP/gitlab-release" .; do
             if git -C "$repo" show-ref --verify --quiet "refs/tags/$VERSION"; then
               if [ "$(git -C "$repo" rev-parse "refs/tags/$VERSION^{tree}")" != "$(git -C "$repo" write-tree)" ]; then

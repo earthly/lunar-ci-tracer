@@ -87,11 +87,20 @@ The tracer exits automatically when the job completes.
 
 ## GitLab CI
 
-The GitLab template is published separately in [earthly-technologies/lunar-ci-tracer on GitLab](https://gitlab.com/earthly-technologies/lunar-ci-tracer). See that repository for setup, OIDC configuration, and examples. Use a release containing GitLab support.
+The GitLab `tracer` component is published separately in [earthly-technologies/lunar-ci-tracer on GitLab](https://gitlab.com/earthly-technologies/lunar-ci-tracer). See that repository for setup, OIDC configuration, and examples. Use a release containing GitLab support.
+
+```yaml
+include:
+  - component: gitlab.com/earthly-technologies/lunar-ci-tracer/tracer@<release-tag>
+    inputs:
+      hub-host: hub.example.com
+```
+
+Extend `.lunar-tracer` in each job you want to trace.
 
 ## Releasing
 
-`release.yml` renders the GitHub action and the GitLab template with the same CLI version, publishes `gitlab.yml` and its README to the GitLab repository, and tags both repositories with that version. Edit the sources under `.github/templates/`; generated GitLab files are hosted only on GitLab.
+`release.yml` renders the GitHub action and the GitLab component with the same CLI version, publishes `templates/tracer.yml` and its README to the GitLab repository, and tags both repositories with that version. Edit the sources under `.github/templates/`; generated GitLab files are hosted only on GitLab.
 
 Re-running a partially published release accepts an existing tag only when its file tree matches the generated release; published tags are never moved. If sources have changed since a partial release, restore the release sources or publish a new version.
 

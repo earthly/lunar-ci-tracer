@@ -1,16 +1,14 @@
 # Lunar CI Tracer for GitLab
 
-This template installs the [Lunar](https://github.com/earthly/lunar) CLI and starts the CI tracer in your GitLab job. The tracer attaches to the job shell and runs CI collectors for subsequent commands.
+The `tracer` CI/CD component installs the [Lunar](https://github.com/earthly/lunar) CLI and starts the CI tracer in your GitLab job. The tracer attaches to the job shell and runs CI collectors for subsequent commands.
 
 ## Usage
 
-Include `gitlab.yml`, pass your Hub hostname as `hub-host`, and extend `.lunar-tracer` in each job you want to trace. Replace `<release-tag>` with a release containing [GitLab CI support](https://github.com/earthly/lunar/pull/3730). The template pins the corresponding CLI version; `v5.0.0` predates this support.
+Include the `tracer` component, pass your Hub hostname as `hub-host`, and extend `.lunar-tracer` in each job you want to trace. Replace `<release-tag>` with a release containing [GitLab CI support](https://github.com/earthly/lunar/pull/3730). The template pins the corresponding CLI version; `v5.0.0` predates this support.
 
 ```yaml
 include:
-  - project: earthly-technologies/lunar-ci-tracer
-    ref: <release-tag>
-    file: /gitlab.yml
+  - component: gitlab.com/earthly-technologies/lunar-ci-tracer/tracer@<release-tag>
     inputs:
       hub-host: hub.example.com
 
@@ -37,11 +35,11 @@ integration-tests:
 
 GitLab runs `build` first, then the two test jobs can run in parallel. Keep your existing job images and runner selection.
 
-For GitLab Self-Managed, use a remote include instead of `project`:
+For GitLab Self-Managed, use a remote include because component references resolve only within the same GitLab instance:
 
 ```yaml
 include:
-  - remote: 'https://gitlab.com/earthly-technologies/lunar-ci-tracer/-/raw/<release-tag>/gitlab.yml'
+  - remote: 'https://gitlab.com/earthly-technologies/lunar-ci-tracer/-/raw/<release-tag>/templates/tracer.yml'
     inputs:
       hub-host: hub.example.com
 ```
@@ -81,7 +79,7 @@ Subsequent `before_script` and `script` commands are traced. GitLab's separate `
 
 ## Releases
 
-The release workflow in [earthly/lunar-ci-tracer on GitHub](https://github.com/earthly/lunar-ci-tracer) updates this repository and creates the matching release tag. The generated template and README use the released CLI version.
+The release workflow in [earthly/lunar-ci-tracer on GitHub](https://github.com/earthly/lunar-ci-tracer) updates this repository and creates the matching release tag. The generated component at `templates/tracer.yml` and README use the released CLI version.
 
 ## License
 
