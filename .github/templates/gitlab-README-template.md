@@ -71,17 +71,14 @@ build:
 
 ## Self-hosted runners
 
-Configure tracing once on the runner with the installation's static Hub service token in `LUNAR_HUB_TOKEN`. Jobs need no component include, `extends`, or `id_tokens` entries.
+Pass the installation's static Hub service token directly to `lunar` in `pre_build_script`, so subsequent job commands do not inherit it. Jobs need no component include, `extends`, or `id_tokens` entries.
 
 Install a CLI release with GitLab support in the job image (Docker) or on the runner host (shell). Merge these settings into the existing `[[runners]]` entry in [`config.toml`](https://docs.gitlab.com/runner/configuration/advanced-configuration/), preserving its other settings and environment entries:
 
 ```toml
 [[runners]]
-  environment = [
-    "LUNAR_HUB_HOST=hub.example.com",
-    "LUNAR_HUB_TOKEN=<hub-service-token>"
-  ]
-  pre_build_script = "lunar ci-tracer run --ci-type gitlab"
+  environment = ["LUNAR_HUB_HOST=hub.example.com"]
+  pre_build_script = "LUNAR_HUB_TOKEN='<hub-service-token>' lunar ci-tracer run --ci-type gitlab"
 
   [runners.docker]
     cap_add = ["SYS_PTRACE"]
