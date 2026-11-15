@@ -4,6 +4,8 @@ The `tracer` CI/CD component installs the [Lunar](https://github.com/earthly/lun
 
 ## Usage
 
+For self-hosted runners, prefer [runner-level setup](#self-hosted-runners) to trace jobs without editing `.gitlab-ci.yml`.
+
 Include the `tracer` component, pass your Hub hostname as `hub-host`, and extend `.lunar-tracer` in each job you want to trace. Replace `<release-tag>` with a release containing [GitLab CI support](https://github.com/earthly/lunar/pull/3730). The template pins the corresponding CLI version; `v5.0.0` predates this support.
 
 ```yaml
@@ -48,7 +50,7 @@ include:
 
 The required `hub-host` input sets `LUNAR_HUB_HOST`. GitLab issues an OIDC ID token directly into `LUNAR_HUB_TOKEN`, with the Hub hostname as its audience. Configure the Hub to trust your GitLab issuer and match this audience with `HUB_AUTH_AUDIENCE`. If the audience differs, override `id_tokens.LUNAR_HUB_TOKEN.aud` in your job.
 
-Remove or appropriately scope existing project/group `LUNAR_HUB_TOKEN` variables: they override the issued ID token.
+When using the component, remove or appropriately scope existing project/group `LUNAR_HUB_TOKEN` variables: they override the issued ID token.
 
 | Variable | Default | Description |
 |---|---|---|
@@ -66,6 +68,28 @@ build:
   script:
     - make build
 ```
+
+## Self-hosted runners
+
+Configure tracing once on the runner with the installation's static Hub service token in `LUNAR_HUB_TOKEN`. Jobs need no component include, `extends`, or `id_tokens` entries. Use this setup for trusted jobs, since the service token grants full Hub access.
+
+Install a CLI release with GitLab support in the job image (Docker) or on the runner host (shell). Merge these settings into the existing `[[runners]]` entry in [`config.toml`](https://docs.gitlab.com/runner/configuration/advanced-configuration/), preserving its other settings and environment entries:
+
+```toml
+[[runners]]
+  environment = [
+    "LUNAR_HUB_HOST=hub.example.com",
+    "LUNAR_HUB_TOKEN=<hub-service-token>"
+  ]
+  pre_build_script = "lunar ci-tracer run --ci-type gitlab"
+
+  [runners.docker]
+    cap_add = ["SYS_PTRACE"]
+```
+
+The `[runners.docker]` section applies only to Docker executors. Run Docker jobs as root and allow ptrace in custom seccomp/AppArmor profiles. Shell executors need same-user ptrace attachment; on [Yama](https://docs.kernel.org/admin-guide/LSM/Yama.html) hosts, use `kernel.yama.ptrace_scope=0` or give the tracer `CAP_SYS_PTRACE` (mode `3` blocks attachment).
+
+Run the command directly in `pre_build_script` so it attaches to the job shell. It returns once attachment is ready; a startup failure fails the job.
 
 ## Requirements and lifecycle
 
